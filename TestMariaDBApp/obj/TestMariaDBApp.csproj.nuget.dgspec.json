@@ -1,0 +1,75 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\vitor\\OneDrive\\Documentos\\HoGent\\Toegepaste Informatica\\Jaar 2\\Semester 1\\DevOps Project Operations\\Testomgeving\\appserver\\TestMariaDBApp\\TestMariaDBApp.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\vitor\\OneDrive\\Documentos\\HoGent\\Toegepaste Informatica\\Jaar 2\\Semester 1\\DevOps Project Operations\\Testomgeving\\appserver\\TestMariaDBApp\\TestMariaDBApp.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\vitor\\OneDrive\\Documentos\\HoGent\\Toegepaste Informatica\\Jaar 2\\Semester 1\\DevOps Project Operations\\Testomgeving\\appserver\\TestMariaDBApp\\TestMariaDBApp.csproj",
+        "projectName": "TestMariaDBApp",
+        "projectPath": "C:\\Users\\vitor\\OneDrive\\Documentos\\HoGent\\Toegepaste Informatica\\Jaar 2\\Semester 1\\DevOps Project Operations\\Testomgeving\\appserver\\TestMariaDBApp\\TestMariaDBApp.csproj",
+        "packagesPath": "C:\\Users\\vitor\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\vitor\\OneDrive\\Documentos\\HoGent\\Toegepaste Informatica\\Jaar 2\\Semester 1\\DevOps Project Operations\\Testomgeving\\appserver\\TestMariaDBApp\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\vitor\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[6.0.23, )"
+            },
+            "Microsoft.EntityFrameworkCore.Design": {
+              "target": "Package",
+              "version": "[6.0.23, )"
+            },
+            "Pomelo.EntityFrameworkCore.MySql": {
+              "target": "Package",
+              "version": "[6.0.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.428\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
