@@ -7,7 +7,7 @@ pipeline {
                 script {
                     // Build the Docker image from the Dockerfile in this repo
                     sh '''
-                        sudo docker build -t testapp-image .
+                        docker build -t testapp-image .
                     '''
                 }
             }
@@ -18,7 +18,7 @@ pipeline {
                 sshagent(['ssh']) {
                     sh '''
                         # Save Docker image to a tarball
-                        sudo docker save testapp-image -o testapp-image.tar
+                        docker save testapp-image -o testapp-image.tar
 
                         # Copy the tarball to remote server
                         scp -o StrictHostKeyChecking=no testapp-image.tar vagrant@192.168.56.122:/tmp/
