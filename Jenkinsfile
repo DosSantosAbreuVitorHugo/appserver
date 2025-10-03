@@ -57,7 +57,7 @@ pipeline {
                           --restart unless-stopped testapp-image
 
                         # Run node_exporter if not already
-                        sudo docker ps | grep node_exporter || sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest
+                        sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest
                         "
                     '''
                 }
