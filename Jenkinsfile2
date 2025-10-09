@@ -74,12 +74,13 @@ EOF
 
                     chmod +x /tmp/run-migrations.sh
 
-                    # Run EF migrations inside container
-                    sudo docker run --rm \
-                      -v /tmp/dotnet-2526-vc2/src:/src \
-                      -w /src \
-                      mcr.microsoft.com/dotnet/sdk:9.0 \
-                      bash /src/run-migrations.sh
+					# Run EF migrations inside container
+					sudo docker run --rm \
+					  -v /tmp/dotnet-2526-vc2/src:/src \
+					  -v /tmp/run-migrations.sh:/run-migrations.sh \
+					  -w /src \
+					  mcr.microsoft.com/dotnet/sdk:9.0 \
+					  bash /run-migrations.sh
 
                     # Run the app container
                     sudo docker run -d \
