@@ -91,7 +91,7 @@ pipeline {
 					  -v /tmp/rise-app-data:/app/Data \\
 					  rise-app
 					  
-					sudo docker exec rise-app ln -sf /app/Data/Rise.db /app/Rise.db
+					sudo docker exec rise-app cp /app/Data/Rise.db /app/Rise.db
 
                     # Ensure node_exporter is running
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
