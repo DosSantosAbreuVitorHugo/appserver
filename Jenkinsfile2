@@ -83,12 +83,12 @@ EOF
 					  bash /run-migrations.sh
 
                     # Run the app container
-                    sudo docker run -d \
-                      -p 8080:8080 \
-                      --name rise-app \
-                      --restart unless-stopped \
-                      -v /tmp/dotnet-2526-vc2/src/Rise.Server:/app \
-                      rise-app
+					sudo docker run -d \
+					  -p 8080:8080 \
+					  --name rise-app \
+					  --restart unless-stopped \
+					  rise-app
+
 
                     # Ensure node_exporter is running
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
