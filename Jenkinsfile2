@@ -73,10 +73,9 @@ mkdir -p /app/Data
 
 # Run migrations pointing to the mounted folder
 mkdir -p /app/Data
+cp /src/Rise.Server/appsettings.json /app/Data/
 cd /app/Data
-dotnet-ef database update \
-  --startup-project /src/Rise.Server \
-  --project /src/Rise.Persistence
+dotnet-ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence
 
 EOF
 
