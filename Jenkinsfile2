@@ -72,10 +72,11 @@ export PATH="$PATH:/root/.dotnet/tools"
 mkdir -p /app/Data
 
 # Run migrations pointing to the mounted folder
+mkdir -p /app/Data
+cd /app/Data
 dotnet-ef database update \
   --startup-project /src/Rise.Server \
-  --project /src/Rise.Persistence \
-  -- --DataSource=/app/Data/Rise.db
+  --project /src/Rise.Persistence
 
 EOF
 
@@ -89,7 +90,7 @@ EOF
 					  -v /tmp/dotnet-2526-vc2/src:/src \
 					  -v /tmp/rise-app-data:/app/Data \
 					  -v /tmp/run-migrations.sh:/run-migrations.sh \
-					  -w /src/Rise.Server \
+					  -w /app/Data \
 					  mcr.microsoft.com/dotnet/sdk:9.0 \
 					  bash /run-migrations.sh
 
