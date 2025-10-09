@@ -31,44 +31,44 @@ pipeline {
         stage('Provision and Run on Remote') {
             steps {
                 sshagent(['ssh']) {
-					sh """
-						ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} << 'ENDSSH'
-						set -e
+					sh '''
+					ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} << 'ENDSSH'
+					set -e
 
-						# Install Docker if missing
-						if ! command -v docker &> /dev/null; then
-						  sudo apt-get update -y
-						  sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release
-						  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-						  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-						  sudo apt-get update -y
-						  sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-						  sudo usermod -aG docker ${REMOTE_USER}
-						  sudo systemctl enable docker
-						  sudo systemctl start docker
-						fi
+					# Install Docker if missing
+					if ! command -v docker &> /dev/null; then
+					  sudo apt-get update -y
+					  sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release
+					  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+					  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+					  sudo apt-get update -y
+					  sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+					  sudo usermod -aG docker ${REMOTE_USER}
+					  sudo systemctl enable docker
+					  sudo systemctl start docker
+					fi
 
-						# Load Docker image
-						sudo docker load -i /tmp/${TAR_FILE}
+					# Load Docker image
+					sudo docker load -i /tmp/${TAR_FILE}
 
-						# Stop old container
-						sudo docker stop ${APP_NAME} || true
-						sudo docker rm ${APP_NAME} || true
+					# Stop old container
+					sudo docker stop ${APP_NAME} || true
+					sudo docker rm ${APP_NAME} || true
 
-						# Run the container
-						sudo docker run -d -p 8080:8080 --name ${APP_NAME} --restart unless-stopped ${APP_NAME}
+					# Run the container
+					sudo docker run -d -p 8080:8080 --name ${APP_NAME} --restart unless-stopped ${APP_NAME}
 
-						# Run migrations inside container
-						sudo docker exec ${APP_NAME} dotnet ef database update --startup-project /app/Rise.Server --project /app/Rise.Persistence
+					# Run EF Core migrations inside the container
+					sudo docker exec ${APP_NAME} dotnet ef database update --startup-project /app/Rise.Server --project /app/Rise.Persistence
 
-						# Ensure node_exporter is running
-						if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
-							sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest
-						else
-							echo "node_exporter is already running, skipping..."
-						fi
+					# Ensure node_exporter is running
+					if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
+						sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest
+					else
+						echo "node_exporter is already running, skipping..."
+					fi
 					ENDSSH
-					"""
+					'''
                 }
             }
         }
