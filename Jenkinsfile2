@@ -81,9 +81,11 @@ EOF
 					sudo docker run --rm \
 					  -v /tmp/dotnet-2526-vc2/src:/src \
 					  -v /tmp/rise-app-data:/src/Rise.Server \
+					  -v /tmp/run-migrations.sh:/run-migrations.sh \
 					  -w /src/Rise.Server \
 					  mcr.microsoft.com/dotnet/sdk:9.0 \
 					  bash /run-migrations.sh
+
 
 					# Run the app container
 					sudo docker run -d \
