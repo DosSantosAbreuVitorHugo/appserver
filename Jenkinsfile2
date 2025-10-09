@@ -57,32 +57,39 @@ pipeline {
                     sudo docker stop rise-app || true
                     sudo docker rm rise-app || true
 
-                    # Create folder for SQLite DB
-                    mkdir -p /tmp/rise-app-data
-                    sudo chmod -R 777 /tmp/rise-app-data
+					# Create folder for SQLite DB
+					mkdir -p /tmp/rise-app-data
+					sudo chmod -R 777 /tmp/rise-app-data
 
-                    # Run EF migrations directly in docker run command
-                    sudo docker run --rm \\
-                      -v /tmp/dotnet-2526-vc2/src:/src \\
-                      -v /tmp/rise-app-data:/app/Data \\
-                      -w /app/Data \\
-                      mcr.microsoft.com/dotnet/sdk:9.0 \\
-                      bash -c \\\"
-                        dotnet tool install --global dotnet-ef --version 9.0.9 || true
-                        export PATH=\\\\\\\$PATH:/root/.dotnet/tools
-                        mkdir -p /app/Data
-                        cp /src/Rise.Server/appsettings.json /app/Data/ 2>/dev/null || true
-                        cd /app/Data
-                        dotnet ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence --verbose
-                      \\\"
+					# Copy the correct appsettings.json to the data directory FIRST
+					cp /tmp/dotnet-2526-vc2/src/Rise.Server/appsettings.json /tmp/rise-app-data/ || true
 
-                    # Run the app container
-                    sudo docker run -d \\
-                      -p 8080:8080 \\
-                      --name rise-app \\
-                      --restart unless-stopped \\
-                      -v /tmp/rise-app-data:/app/Data \\
-                      rise-app
+					# Run EF migrations with explicit connection string
+					sudo docker run --rm \\
+					  -v /tmp/dotnet-2526-vc2/src:/src \\
+					  -v /tmp/rise-app-data:/app/Data \\
+					  -w /app/Data \\
+					  mcr.microsoft.com/dotnet/sdk:9.0 \\
+					  bash -c \\\"
+						dotnet tool install --global dotnet-ef --version 9.0.9 || true
+						export PATH=\\\\\\\$PATH:/root/.dotnet/tools
+						dotnet ef database update \\
+						  --startup-project /src/Rise.Server \\
+						  --project /src/Rise.Persistence \\
+						  --connection \\\"Data Source=/app/Data/Rise.db;Cache=Shared\\\"
+					  \\\"
+
+					# Verify the database was created
+					echo 'Checking if database file was created:'
+					ls -la /tmp/rise-app-data/ | grep -i rise.db || echo 'No database file found'
+
+					# Run the app container
+					sudo docker run -d \\
+					  -p 8080:8080 \\
+					  --name rise-app \\
+					  --restart unless-stopped \\
+					  -v /tmp/rise-app-data:/app/Data \\
+					  rise-app
 
                     # Ensure node_exporter is running
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
