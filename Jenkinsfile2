@@ -57,13 +57,13 @@ pipeline {
                     sudo docker stop rise-app || true
                     sudo docker rm rise-app || true
 
-                    # Create migration script on remote host
+
 cat << 'EOF' > /tmp/run-migrations.sh
 #!/bin/bash
 set -e
 
 dotnet tool install --global dotnet-ef --version 9.0.9 || true
-export PATH=\$PATH:/root/.dotnet/tools
+export PATH=$PATH:/root/.dotnet/tools
 
 # Ensure database folder exists
 mkdir -p /app/Data
@@ -74,8 +74,9 @@ cd /app/Data
 dotnet-ef database update \
   --startup-project /src/Rise.Server \
   --project /src/Rise.Persistence \
-  -- --ConnectionStrings:DatabaseConnection=\"Data Source=/app/Data/Rise.db;Cache=Shared\"
+  -- --ConnectionStrings:DatabaseConnection="Data Source=/app/Data/Rise.db;Cache=Shared"
 EOF
+
 
                     chmod +x /tmp/run-migrations.sh
 
