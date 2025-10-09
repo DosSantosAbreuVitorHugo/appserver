@@ -57,39 +57,24 @@ pipeline {
                     sudo docker stop rise-app || true
                     sudo docker rm rise-app || true
 
-                    # Create migration script using echo commands
-                    tee /tmp/run-migrations.sh > /dev/null << 'MIGRATION_EOF'
-#!/bin/bash
-set -e
-
-dotnet tool install --global dotnet-ef --version 9.0.9 || true
-export PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.dotnet/tools
-
-# Ensure database folder exists
-mkdir -p /app/Data
-cp /src/Rise.Server/appsettings.json /app/Data/
-cd /app/Data
-
-# Run EF migrations
-dotnet-ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence -- --ConnectionStrings:DatabaseConnection=\\\"Data Source=/app/Data/Rise.db;Cache=Shared\\\"
-MIGRATION_EOF
-
-                    sudo chmod +x /tmp/run-migrations.sh
-
                     # Create folder for SQLite DB
                     mkdir -p /tmp/rise-app-data
                     sudo chmod -R 777 /tmp/rise-app-data
 
-					sudo docker run --rm \
-					  -v /tmp/dotnet-2526-vc2/src:/src \
-					  -v /tmp/rise-app-data:/app/Data \
-					  -w /app/Data \
-					  mcr.microsoft.com/dotnet/sdk:9.0 \
-					  bash -c "
-						dotnet tool restore || dotnet tool install --global dotnet-ef --version 9.0.9
-						export PATH=\$PATH:/root/.dotnet/tools
-						dotnet ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence
-					  "
+                    # Run EF migrations directly in docker run command
+                    sudo docker run --rm \\
+                      -v /tmp/dotnet-2526-vc2/src:/src \\
+                      -v /tmp/rise-app-data:/app/Data \\
+                      -w /app/Data \\
+                      mcr.microsoft.com/dotnet/sdk:9.0 \\
+                      bash -c \\\"
+                        dotnet tool install --global dotnet-ef --version 9.0.9 || true
+                        export PATH=\\\\\\\$PATH:/root/.dotnet/tools
+                        mkdir -p /app/Data
+                        cp /src/Rise.Server/appsettings.json /app/Data/ 2>/dev/null || true
+                        cd /app/Data
+                        dotnet ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence --verbose
+                      \\\"
 
                     # Run the app container
                     sudo docker run -d \\
