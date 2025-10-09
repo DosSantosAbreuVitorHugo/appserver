@@ -58,11 +58,11 @@ pipeline {
                     sudo docker rm rise-app || true;
 
                     # Run EF Core migrations with SQLite folder mounted
-                    sudo docker run --rm \
-                        -v /tmp/dotnet-2526-vc2/src/Rise.Server:/src \
-                        -w /src \
-                        mcr.microsoft.com/dotnet/sdk:9.0 \
-                        bash -c \"dotnet tool install --global dotnet-ef --version 9.0.9 && export PATH=\\$PATH:/root/.dotnet/tools && dotnet ef database update --startup-project /src/Rise.Server.csproj --project /src/Rise.Persistence.csproj\"
+					sudo docker run --rm \
+					  -v /tmp/dotnet-2526-vc2/src/Rise.Server:/src \
+					  -w /src \
+					  mcr.microsoft.com/dotnet/sdk:9.0 \
+					  bash -c "dotnet tool install --global dotnet-ef --version 9.0.9 && export PATH=\$PATH:/root/.dotnet/tools && dotnet ef database update --startup-project /src/Rise.Server.csproj --project /src/Rise.Persistence.csproj"
 
                     # Run the app container with SQLite folder mounted
                     sudo docker run -d \
