@@ -80,14 +80,12 @@ MIGRATION_EOF
                     mkdir -p /tmp/rise-app-data
                     sudo chmod -R 777 /tmp/rise-app-data
 
-                    # Run EF migrations
-                    sudo docker run --rm \\
-                      -v /tmp/dotnet-2526-vc2/src:/src \\
-                      -v /tmp/rise-app-data:/app/Data \\
-                      -v /tmp/run-migrations.sh:/run-migrations.sh \\
-                      -w /app/Data \\
-                      mcr.microsoft.com/dotnet/sdk:9.0 \\
-                      bash /run-migrations.sh
+					sudo docker run --rm \
+					  -v /tmp/dotnet-2526-vc2/src:/src \
+					  -v /tmp/rise-app-data:/app/Data \
+					  -w /app/Data \
+					  mcr.microsoft.com/dotnet/sdk:9.0 \
+					  dotnet-ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence
 
                     # Run the app container
                     sudo docker run -d \\
