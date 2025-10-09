@@ -35,74 +35,77 @@ pipeline {
                 sshagent(['ssh']) {
                     sh '''
                     ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "
-                    set -e;
+                    set -e
 
                     # Install Docker if missing
                     if ! command -v docker &> /dev/null; then
-                        sudo apt-get update -y;
-                        sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release;
-                        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg;
-                        echo 'deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable' | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null;
-                        sudo apt-get update -y;
-                        sudo apt-get install -y docker-ce docker-ce-cli containerd.io;
-                        sudo usermod -aG docker vagrant;
-                        sudo systemctl enable docker;
-                        sudo systemctl start docker;
-                    fi;
+                        sudo apt-get update -y
+                        sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release
+                        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+                        echo 'deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable' | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+                        sudo apt-get update -y
+                        sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+                        sudo usermod -aG docker vagrant
+                        sudo systemctl enable docker
+                        sudo systemctl start docker
+                    fi
 
                     # Load Docker image
-                    sudo docker load -i /tmp/rise-app.tar;
+                    sudo docker load -i /tmp/rise-app.tar
 
                     # Stop old container if exists
-                    sudo docker stop rise-app || true;
-                    sudo docker rm rise-app || true;
+                    sudo docker stop rise-app || true
+                    sudo docker rm rise-app || true
 
-					# Create migration script on remote host
-					cat << 'EOF' > /tmp/run-migrations.sh
+                    # Create migration script on remote host
+cat << 'EOF' > /tmp/run-migrations.sh
 #!/bin/bash
 set -e
 
 dotnet tool install --global dotnet-ef --version 9.0.9 || true
-export PATH="$PATH:/root/.dotnet/tools"
+export PATH=\$PATH:/root/.dotnet/tools
+
+# Ensure database folder exists
 mkdir -p /app/Data
 cp /src/Rise.Server/appsettings.json /app/Data/
 cd /app/Data
 
+# Run EF migrations
 dotnet-ef database update \
   --startup-project /src/Rise.Server \
   --project /src/Rise.Persistence \
-  -- --ConnectionStrings:DatabaseConnection="Data Source=/app/Data/Rise.db;Cache=Shared"
+  -- --ConnectionStrings:DatabaseConnection=\"Data Source=/app/Data/Rise.db;Cache=Shared\"
 EOF
-
 
                     chmod +x /tmp/run-migrations.sh
 
-					# Create folder for SQLite DB
-					mkdir -p /tmp/rise-app-data
-					sudo chmod -R 777 /tmp/rise-app-data
-					
-					# Run EF migrations
-					sudo docker run --rm \
-					  -v /tmp/dotnet-2526-vc2/src:/src \
-					  -v /tmp/rise-app-data:/app/Data \
-					  -v /tmp/run-migrations.sh:/run-migrations.sh \
-					  -w /app/Data \
-					  mcr.microsoft.com/dotnet/sdk:9.0 \
-					  bash /run-migrations.sh
+                    # Create folder for SQLite DB
+                    mkdir -p /tmp/rise-app-data
+                    sudo chmod -R 777 /tmp/rise-app-data
 
-					sudo docker run -d \
-					  -p 8080:8080 \
-					  --name rise-app \
-					  --restart unless-stopped \
-					  -v /tmp/rise-app-data:/app/Data \
-					  rise-app
+                    # Run EF migrations
+                    sudo docker run --rm \
+                      -v /tmp/dotnet-2526-vc2/src:/src \
+                      -v /tmp/rise-app-data:/app/Data \
+                      -v /tmp/run-migrations.sh:/run-migrations.sh \
+                      -w /app/Data \
+                      mcr.microsoft.com/dotnet/sdk:9.0 \
+                      bash /run-migrations.sh
+
+                    # Run the app container
+                    sudo docker run -d \
+                      -p 8080:8080 \
+                      --name rise-app \
+                      --restart unless-stopped \
+                      -v /tmp/rise-app-data:/app/Data \
+                      rise-app
 
                     # Ensure node_exporter is running
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
-                        sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest;
+                        sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest
                     else
-                        echo 'node_exporter is already running, skipping...';
-                    fi;
+                        echo 'node_exporter is already running, skipping...'
+                    fi
                     "
                     '''
                 }
