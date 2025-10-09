@@ -84,13 +84,13 @@ pipeline {
                     ls -la /tmp/rise-app-data/ | grep -i rise.db || echo 'No database file found'
 
                     # Run the app container
-                    sudo docker run -d \\
-                      -p 8080:8080 \\
-                      --name rise-app \\
-                      --restart unless-stopped \\
-                      -v /tmp/rise-app-data:/app/Data \\
-                      -e ConnectionStrings__DatabaseConnection=\\\"DataSource=/app/Data/Rise.db;Cache=Shared\\\" \\
-                      rise-app
+					sudo docker run -d \\
+					  -p 8080:8080 \\
+					  --name rise-app \\
+					  --restart unless-stopped \\
+					  -v /tmp/rise-app-data:/app/Data \\
+					  -v /tmp/rise-app-data/appsettings.json:/app/appsettings.json \\
+					  rise-app
 
                     # Ensure node_exporter is running
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
