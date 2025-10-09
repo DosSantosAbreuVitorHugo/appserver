@@ -52,7 +52,14 @@ pipeline {
 					sudo docker run -d -p 8080:8080 --name rise-app --restart unless-stopped rise-app
 
 					# Run EF Core migrations inside the container
-					sudo docker exec rise-app dotnet ef database update --startup-project /app/Rise.Server --project /app/Rise.Persistence
+					sudo docker run --rm \
+						  -v /tmp:/src \
+						  -w /src \
+						  mcr.microsoft.com/dotnet/sdk:9.0 \
+						  bash -c "dotnet tool install --global dotnet-ef --version 9.0.9 && \
+								   export PATH=\$PATH:/root/.dotnet/tools && \
+								   dotnet ef database update --startup-project src/Rise.Server/Rise.Server.csproj \
+															 --project src/Rise.Persistence/Rise.Persistence.csproj"
 
 					# Ensure node_exporter is running
 					if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
