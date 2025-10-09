@@ -10,15 +10,27 @@ pipeline {
             }
         }
 
-        stage('Transfer Image and Source to Remote Server') {
+        stage('Transfer Image and Project to Remote Server') {
             steps {
                 sshagent(['ssh']) {
-                    sh """
-                        docker save rise-app -o rise-app.tar
+                    sh '''
+                    # Save Docker image
+                    docker save rise-app -o rise-app.tar
 
-                        scp -o StrictHostKeyChecking=no rise-app.tar vagrant@192.168.56.122:/tmp/
-                        scp -r -o StrictHostKeyChecking=no dotnet-2526-vc2 vagrant@192.168.56.122:/tmp/
-                    """
+                    # Copy Docker image to remote
+                    scp -o StrictHostKeyChecking=no rise-app.tar vagrant@192.168.56.122:/tmp/
+
+                    # Ensure remote folder exists and copy project folder
+                    ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 << 'ENDSSH'
+                    set -e
+                    if [ ! -d /tmp/dotnet-2526-vc2 ]; then
+                        mkdir -p /tmp/
+                    fi
+                    ENDSSH
+
+                    # Copy the full project folder to remote (overwrites any missing files)
+                    scp -r -o StrictHostKeyChecking=no dotnet-2526-vc2 vagrant@192.168.56.122:/tmp/
+                    '''
                 }
             }
         }
@@ -53,9 +65,9 @@ pipeline {
                     echo "=== Running EF Core migrations ==="
                     sudo docker run --rm \
                         -v /tmp/dotnet-2526-vc2:/src \
-                        -w /src/dotnet-2526-vc2 \
+                        -w /src \
                         mcr.microsoft.com/dotnet/sdk:9.0 \
-                        bash -c "dotnet tool install --global dotnet-ef --version 9.0.9 && export PATH=\$PATH:/root/.dotnet/tools && dotnet ef database update --startup-project src/Rise.Server/Rise.Server.csproj --project src/Rise.Persistence/Rise.Persistence.csproj"
+                        bash -c "dotnet tool install --global dotnet-ef --version 9.0.9 && export PATH=\$PATH:/root/.dotnet/tools && dotnet ef database update --startup-project /src/src/Rise.Server/Rise.Server.csproj --project /src/src/Rise.Persistence/Rise.Persistence.csproj"
 
                     echo "=== Starting new rise-app container ==="
                     sudo docker run -d \
@@ -70,6 +82,7 @@ pipeline {
                     else
                         echo "node_exporter is already running, skipping..."
                     fi
+
                     ENDSSH
                     '''
                 }
