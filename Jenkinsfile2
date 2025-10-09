@@ -82,13 +82,21 @@ pipeline {
                     # Verify the database was created
                     echo 'Checking if database file was created:'
                     ls -la /tmp/rise-app-data/ | grep -i rise.db || echo 'No database file found'
+					
+					# Update the client configuration to use the server IP
+					sudo sed -i 's|https://localhost:5001|http://192.168.56.122:5001|g' /tmp/dotnet-2526-vc2/src/Rise.Client/wwwroot/appsettings.json
 
-                    # Run the app container
+					# Verify the change
+					echo 'Updated appsettings.json:'
+					cat /tmp/dotnet-2526-vc2/src/Rise.Client/wwwroot/appsettings.json
+
+					# Run the app container on port 5001
 					sudo docker run -d \\
 					  -p 5001:8080 \\
 					  --name rise-app \\
 					  --restart unless-stopped \\
 					  -v /tmp/rise-app-data:/app/Data \\
+					  -e ConnectionStrings__DatabaseConnection=\\\"DataSource=/app/Data/Rise.db;Cache=Shared\\\" \\
 					  rise-app
 					  
 					sudo docker exec rise-app cp /app/Data/Rise.db /app/Rise.db
