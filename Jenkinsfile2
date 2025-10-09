@@ -33,8 +33,8 @@ pipeline {
         stage('Provision and Deploy on Remote Server') {
             steps {
                 sshagent(['ssh']) {
-                    sh '''#!/bin/bash
-                    ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 '
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "
                     set -e
 
                     # Install Docker if missing
@@ -42,7 +42,7 @@ pipeline {
                         sudo apt-get update -y
                         sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release
                         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-                        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+                        echo \\\"deb [arch=\\$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \\$(lsb_release -cs) stable\\\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
                         sudo apt-get update -y
                         sudo apt-get install -y docker-ce docker-ce-cli containerd.io
                         sudo usermod -aG docker vagrant
@@ -57,22 +57,22 @@ pipeline {
                     sudo docker stop rise-app || true
                     sudo docker rm rise-app || true
 
-                    # Create migration script
-                    cat > /tmp/run-migrations.sh << \\\"ENDOFSCRIPT
-                    #!/bin/bash
-                    set -e
+                    # Create migration script using echo commands
+                    sudo tee /tmp/run-migrations.sh > /dev/null << 'MIGRATION_EOF'
+#!/bin/bash
+set -e
 
-                    dotnet tool install --global dotnet-ef --version 9.0.9 || true
-                    export PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.dotnet/tools
+dotnet tool install --global dotnet-ef --version 9.0.9 || true
+export PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.dotnet/tools
 
-                    # Ensure database folder exists
-                    mkdir -p /app/Data
-                    cp /src/Rise.Server/appsettings.json /app/Data/
-                    cd /app/Data
+# Ensure database folder exists
+mkdir -p /app/Data
+cp /src/Rise.Server/appsettings.json /app/Data/
+cd /app/Data
 
-                    # Run EF migrations
-                    dotnet-ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence -- --ConnectionStrings:DatabaseConnection="Data Source=/app/Data/Rise.db;Cache=Shared"
-                    ENDOFSCRIPT
+# Run EF migrations
+dotnet-ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence -- --ConnectionStrings:DatabaseConnection=\\\"Data Source=/app/Data/Rise.db;Cache=Shared\\\"
+MIGRATION_EOF
 
                     chmod +x /tmp/run-migrations.sh
 
@@ -101,9 +101,9 @@ pipeline {
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
                         sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest
                     else
-                        echo "node_exporter is already running, skipping..."
+                        echo 'node_exporter is already running, skipping...'
                     fi
-                    '
+                    "
                     '''
                 }
             }
