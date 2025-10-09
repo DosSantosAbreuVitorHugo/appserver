@@ -6,12 +6,12 @@ WORKDIR /src
 
 # Copy the solution and restore dependencies
 COPY Rise.sln ./
-COPY dotnet-2526-vc2src/Rise.Server/Rise.Server.csproj src/Rise.Server/
-COPY dotnet-2526-vc2src/src/Rise.Client/Rise.Client.csproj src/Rise.Client/
-COPY dotnet-2526-vc2src/src/Rise.Domain/Rise.Domain.csproj src/Rise.Domain/
-COPY dotnet-2526-vc2src/src/Rise.Services/Rise.Services.csproj src/Rise.Services/
-COPY dotnet-2526-vc2src/src/Rise.Shared/Rise.Shared.csproj src/Rise.Shared/
-COPY dotnet-2526-vc2src/src/Rise.Persistence/Rise.Persistence.csproj src/Rise.Persistence/
+COPY dotnet-2526-vc2/src/Rise.Server/Rise.Server.csproj src/Rise.Server/
+COPY dotnet-2526-vc2/src/Rise.Client/Rise.Client.csproj src/Rise.Client/
+COPY dotnet-2526-vc2/src/Rise.Domain/Rise.Domain.csproj src/Rise.Domain/
+COPY dotnet-2526-vc2/src/Rise.Services/Rise.Services.csproj src/Rise.Services/
+COPY dotnet-2526-vc2/src/Rise.Shared/Rise.Shared.csproj src/Rise.Shared/
+COPY dotnet-2526-vc2/src/Rise.Persistence/Rise.Persistence.csproj src/Rise.Persistence/
 
 RUN dotnet restore Rise.sln
 
