@@ -74,28 +74,24 @@ EOF
 
                     chmod +x /tmp/run-migrations.sh
 
-					# Create migration and runtime container to use the same folder for database
+					# Create folder for SQLite DB
 					mkdir -p /tmp/rise-app-data
 
-					# Run EF migrations inside container
+					# Run EF migrations
 					sudo docker run --rm \
 					  -v /tmp/dotnet-2526-vc2/src:/src \
-					  -v /tmp/rise-app-data:/src/Rise.Server \
+					  -v /tmp/rise-app-data:/app/Data \
 					  -v /tmp/run-migrations.sh:/run-migrations.sh \
 					  -w /src/Rise.Server \
 					  mcr.microsoft.com/dotnet/sdk:9.0 \
 					  bash /run-migrations.sh
 
-
-					# Run the app container
 					sudo docker run -d \
 					  -p 8080:8080 \
 					  --name rise-app \
 					  --restart unless-stopped \
-					  -v /tmp/rise-app-data:/app \
+					  -v /tmp/rise-app-data:/app/Data \
 					  rise-app
-
-
 
                     # Ensure node_exporter is running
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
