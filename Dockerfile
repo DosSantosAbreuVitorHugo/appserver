@@ -1,19 +1,32 @@
-# Stage 1: Build
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+# ========================================
+# BUILD STAGE
+# ========================================
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copy the solution and restore dependencies
+COPY Rise.sln ./
+COPY src/Rise.Server/Rise.Server.csproj src/Rise.Server/
+COPY src/Rise.Client/Rise.Client.csproj src/Rise.Client/
+COPY src/Rise.Domain/Rise.Domain.csproj src/Rise.Domain/
+COPY src/Rise.Services/Rise.Services.csproj src/Rise.Services/
+COPY src/Rise.Shared/Rise.Shared.csproj src/Rise.Shared/
+COPY src/Rise.Persistence/Rise.Persistence.csproj src/Rise.Persistence/
+
+RUN dotnet restore Rise.sln
+
+# Copy everything else and build
+COPY . .
+RUN dotnet publish src/Rise.Server/Rise.Server.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+# ========================================
+# RUNTIME STAGE
+# ========================================
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
+COPY --from=build /app/publish .
 
-# Copy only the project file first for caching
-COPY TestMariaDBApp/TestMariaDBApp.csproj ./TestMariaDBApp/
-RUN dotnet restore TestMariaDBApp/TestMariaDBApp.csproj
+# Expose default ASP.NET port
+EXPOSE 8080
 
-# Copy the rest of the app
-COPY TestMariaDBApp/ ./TestMariaDBApp/
-
-# Build & publish
-RUN dotnet publish TestMariaDBApp/TestMariaDBApp.csproj -c Release -o out
-
-# Stage 2: Runtime
-FROM mcr.microsoft.com/dotnet/runtime:6.0
-WORKDIR /app
-COPY --from=build /app/out .
-ENTRYPOINT ["dotnet", "TestMariaDBApp.dll"]
+ENTRYPOINT ["dotnet", "Rise.Server.dll"]
