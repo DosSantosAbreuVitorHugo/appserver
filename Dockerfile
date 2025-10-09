@@ -13,12 +13,15 @@ COPY dotnet-2526-vc2/src/ src/
 # Copy all test project files (tests/)
 COPY dotnet-2526-vc2/tests/ tests/
 
-RUN dotnet ef migrations add YourMigrationName --startup-project Rise.Server --project Rise.Persistence
-
-RUN dotnet ef database update --startup-project Rise.Server --project Rise.Persistence
+# Install EF Core CLI tools globally
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="$PATH:/root/.dotnet/tools"
 
 # Restore all projects in the solution
 RUN dotnet restore Rise.sln
+
+RUN dotnet ef migrations add YourMigrationName --startup-project Rise.Server --project Rise.Persistence
+RUN dotnet ef database update --startup-project Rise.Server --project Rise.Persistence
 
 # Build the solution
 RUN dotnet build Rise.sln -c Release --no-restore
