@@ -57,20 +57,37 @@ pipeline {
                     sudo docker stop rise-app || true;
                     sudo docker rm rise-app || true;
 
-                    # Run EF Core migrations with SQLite folder mounted
-					sudo docker run --rm \
-					  -v /tmp/dotnet-2526-vc2/src:/src \
-					  -w /src/Rise.Server \
-					  mcr.microsoft.com/dotnet/sdk:9.0 \
-					  bash -c "dotnet tool install --global dotnet-ef --version 9.0.9 && ~/.dotnet/tools/dotnet-ef database update --startup-project . --project ../Rise.Persistence"
+                    # Create migration script on remote host
+                    cat << 'EOF' > /tmp/run-migrations.sh
+#!/bin/bash
+set -e
 
-                    # Run the app container with SQLite folder mounted
-					sudo docker run -d \
-					  -p 8080:8080 \
-					  --name rise-app \
-					  --restart unless-stopped \
-					  -v /tmp/dotnet-2526-vc2/src/Rise.Server:/app \
-					  rise-app
+# Install dotnet-ef if missing
+dotnet tool install --global dotnet-ef --version 9.0.9 || true
+
+# Ensure PATH includes dotnet tools
+export PATH="$PATH:/root/.dotnet/tools"
+
+# Run migrations
+dotnet-ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence
+EOF
+
+                    chmod +x /tmp/run-migrations.sh
+
+                    # Run EF migrations inside container
+                    sudo docker run --rm \
+                      -v /tmp/dotnet-2526-vc2/src:/src \
+                      -w /src \
+                      mcr.microsoft.com/dotnet/sdk:9.0 \
+                      bash /src/run-migrations.sh
+
+                    # Run the app container
+                    sudo docker run -d \
+                      -p 8080:8080 \
+                      --name rise-app \
+                      --restart unless-stopped \
+                      -v /tmp/dotnet-2526-vc2/src/Rise.Server:/app \
+                      rise-app
 
                     # Ensure node_exporter is running
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
