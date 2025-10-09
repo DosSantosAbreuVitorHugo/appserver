@@ -1,18 +1,11 @@
 pipeline {
     agent any
 
-    environment {
-        APP_NAME = "rise-app"
-        TAR_FILE = "rise-app.tar"
-        REMOTE_USER = "vagrant"
-        REMOTE_HOST = "192.168.56.122"
-    }
-
     stages {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t ${APP_NAME} ."
+                    sh "docker build -t rise-app ."
                 }
             }
         }
@@ -21,8 +14,8 @@ pipeline {
             steps {
                 sshagent(['ssh']) {
                     sh """
-                        docker save ${APP_NAME} -o ${TAR_FILE}
-                        scp -o StrictHostKeyChecking=no ${TAR_FILE} ${REMOTE_USER}@${REMOTE_HOST}:/tmp/
+                        docker save rise-app -o rise-app.tar
+                        scp -o StrictHostKeyChecking=no rise-app.tar vagrant@192.168.56.122:/tmp/
                     """
                 }
             }
@@ -32,7 +25,7 @@ pipeline {
             steps {
                 sshagent(['ssh']) {
 					sh '''
-					ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} << 'ENDSSH'
+					ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 << 'ENDSSH'
 					set -e
 
 					# Install Docker if missing
@@ -43,23 +36,23 @@ pipeline {
 					  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 					  sudo apt-get update -y
 					  sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-					  sudo usermod -aG docker ${REMOTE_USER}
+					  sudo usermod -aG docker vagrant
 					  sudo systemctl enable docker
 					  sudo systemctl start docker
 					fi
 
 					# Load Docker image
-					sudo docker load -i /tmp/${TAR_FILE}
+					sudo docker load -i /tmp/rise-app.tar
 
 					# Stop old container
-					sudo docker stop ${APP_NAME} || true
-					sudo docker rm ${APP_NAME} || true
+					sudo docker stop rise-app || true
+					sudo docker rm rise-app || true
 
 					# Run the container
-					sudo docker run -d -p 8080:8080 --name ${APP_NAME} --restart unless-stopped ${APP_NAME}
+					sudo docker run -d -p 8080:8080 --name rise-app --restart unless-stopped rise-app
 
 					# Run EF Core migrations inside the container
-					sudo docker exec ${APP_NAME} dotnet ef database update --startup-project /app/Rise.Server --project /app/Rise.Persistence
+					sudo docker exec rise-app dotnet ef database update --startup-project /app/Rise.Server --project /app/Rise.Persistence
 
 					# Ensure node_exporter is running
 					if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
