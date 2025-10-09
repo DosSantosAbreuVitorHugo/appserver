@@ -76,7 +76,7 @@ pipeline {
 						dotnet ef database update \\
 						  --startup-project /src/Rise.Server \\
 						  --project /src/Rise.Persistence \\
-						  --connection \\\"Data Source=/app/Data/Rise.db;Cache=Shared\\\"
+						  --connection \\\"DataSource=/app/Data/Rise.db;Cache=Shared\\\"
 					  \\\"
 
 					# Verify the database was created
