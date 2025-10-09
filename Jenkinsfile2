@@ -23,7 +23,10 @@ pipeline {
             steps {
                 sshagent(['ssh']) {
                     sh """
+                        # Save Docker image to a tarball
                         docker save ${APP_NAME} -o ${TAR_FILE}
+
+                        # Copy the tarball to remote server
                         scp -o StrictHostKeyChecking=no ${TAR_FILE} ${REMOTE_USER}@${REMOTE_HOST}:/tmp/
                     """
                 }
@@ -33,7 +36,7 @@ pipeline {
         stage('Provision and Run on Remote') {
             steps {
                 sshagent(['ssh']) {
-                    sh """
+                    sh '''
                         ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
                         set -e
 
@@ -42,7 +45,7 @@ pipeline {
                           sudo apt-get update -y
                           sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release
                           curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-                          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+                          echo "deb [arch=\\$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \\\$(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
                           sudo apt-get update -y
                           sudo apt-get install -y docker-ce docker-ce-cli containerd.io
                           sudo usermod -aG docker ${REMOTE_USER}
@@ -50,18 +53,18 @@ pipeline {
                           sudo systemctl start docker
                         fi
 
-                        # Load the image
+                        # Load Docker image
                         sudo docker load -i /tmp/${TAR_FILE}
 
-                        # Run EF migrations in a temporary SDK container
+                        # Run EF Core migrations using a temporary SDK container
                         echo "Running EF Core migrations..."
                         sudo docker run --rm \
                           -v /tmp:/src \
                           -w /src \
                           mcr.microsoft.com/dotnet/sdk:9.0 \
-                          bash -c "dotnet tool install --global dotnet-ef && export PATH=\"\$PATH:/root/.dotnet/tools\" && dotnet ef database update --startup-project src/Rise.Server/Rise.Server.csproj --project src/Rise.Persistence/Rise.Persistence.csproj"
+                          bash -c "dotnet tool install --global dotnet-ef && export PATH=\\\"\$PATH:/root/.dotnet/tools\\\" && dotnet ef database update --startup-project src/Rise.Server/Rise.Server.csproj --project src/Rise.Persistence/Rise.Persistence.csproj"
 
-                        # Stop and remove any old app container
+                        # Stop and remove old app container
                         sudo docker stop ${APP_NAME} || true
                         sudo docker rm ${APP_NAME} || true
 
@@ -75,7 +78,7 @@ pipeline {
                             echo "node_exporter is already running, skipping..."
                         fi
                         '
-                    """
+                    '''
                 }
             }
         }
