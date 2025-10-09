@@ -89,8 +89,9 @@ pipeline {
 					  --name rise-app \\
 					  --restart unless-stopped \\
 					  -v /tmp/rise-app-data:/app/Data \\
-					  -v /tmp/rise-app-data/appsettings.json:/app/appsettings.json \\
 					  rise-app
+					  
+					sudo docker exec rise-app ln -sf /app/Data/Rise.db /app/Rise.db
 
                     # Ensure node_exporter is running
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
