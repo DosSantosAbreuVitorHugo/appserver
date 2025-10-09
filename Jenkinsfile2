@@ -20,10 +20,10 @@ pipeline {
                     # Copy Docker image to remote
                     scp -o StrictHostKeyChecking=no rise-app.tar vagrant@192.168.56.122:/tmp/
 
-                    # Ensure remote folder exists and copy project folder
+                    # Ensure remote folder exists
                     ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "mkdir -p /tmp/dotnet-2526-vc2"
 
-                    # Copy the full project folder to remote (overwrites any missing files)
+                    # Copy full project folder to remote
                     scp -r -o StrictHostKeyChecking=no dotnet-2526-vc2 vagrant@192.168.56.122:/tmp/
                     '''
                 }
@@ -36,7 +36,7 @@ pipeline {
                     sh '''
                     ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "
                     set -e;
-                    
+
                     # Install Docker if missing
                     if ! command -v docker &> /dev/null; then
                         sudo apt-get update -y;
@@ -57,21 +57,21 @@ pipeline {
                     sudo docker stop rise-app || true;
                     sudo docker rm rise-app || true;
 
-                    # Run EF Core migrations
-					sudo docker run --rm \
-					  -v /tmp/dotnet-2526-vc2/src/Rise.Server:/src \
-					  -w /src \
-					  mcr.microsoft.com/dotnet/sdk:9.0 \
-					  bash -c "dotnet tool install --global dotnet-ef --version 9.0.9 && export PATH=\$PATH:/root/.dotnet/tools && dotnet ef database update --startup-project /src/Rise.Server.csproj --project /src/Rise.Persistence.csproj"
+                    # Run EF Core migrations with SQLite folder mounted
+                    sudo docker run --rm \
+                        -v /tmp/dotnet-2526-vc2/src/Rise.Server:/src \
+                        -w /src \
+                        mcr.microsoft.com/dotnet/sdk:9.0 \
+                        bash -c \"dotnet tool install --global dotnet-ef --version 9.0.9 && export PATH=\\$PATH:/root/.dotnet/tools && dotnet ef database update --startup-project /src/Rise.Server.csproj --project /src/Rise.Persistence.csproj\"
 
-                    # Start the app container
-					sudo docker run -d \
-					  -p 8080:8080 \
-					  --name rise-app \
-					  --restart unless-stopped \
-					  -v /tmp/dotnet-2526-vc2/src/Rise.Server:/app \
-					  rise-app
-  
+                    # Run the app container with SQLite folder mounted
+                    sudo docker run -d \
+                        -p 8080:8080 \
+                        --name rise-app \
+                        --restart unless-stopped \
+                        -v /tmp/dotnet-2526-vc2/src/Rise.Server:/app \
+                        rise-app
+
                     # Ensure node_exporter is running
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
                         sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest;
