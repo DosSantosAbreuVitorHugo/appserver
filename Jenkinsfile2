@@ -71,14 +71,9 @@ export PATH="$PATH:/root/.dotnet/tools"
 # Ensure database folder exists
 mkdir -p /app/Data
 
-# Run migrations pointing to the mounted folder
-mkdir -p /app/Data
 cp /src/Rise.Server/appsettings.json /app/Data/
 cd /app/Data
-dotnet-ef database update \
-  --startup-project /src/Rise.Server \
-  --project /src/Rise.Persistence \
-  -- --ConnectionStrings:DatabaseConnection="Data Source=/app/Data/Rise.db;Cache=Shared"
+dotnet-ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence -- --ConnectionStrings:DatabaseConnection="Data Source=/app/Data/Rise.db;Cache=Shared"
 
 EOF
 
@@ -86,7 +81,8 @@ EOF
 
 					# Create folder for SQLite DB
 					mkdir -p /tmp/rise-app-data
-
+					sudo chmod -R 777 /tmp/rise-app-data
+					
 					# Run EF migrations
 					sudo docker run --rm \
 					  -v /tmp/dotnet-2526-vc2/src:/src \
