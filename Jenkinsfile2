@@ -62,7 +62,7 @@ pipeline {
 					  -v /tmp/dotnet-2526-vc2/src:/src \
 					  -w /src \
 					  mcr.microsoft.com/dotnet/sdk:9.0 \
-					  bash -c "dotnet tool install --global dotnet-ef --version 9.0.9 && export PATH=\$PATH:/root/.dotnet/tools && dotnet ef database update --startup-project /src/Rise.Server/Rise.Server.csproj --project /src/Rise.Persistence/Rise.Persistence.csproj"
+					  bash -c "dotnet tool install --global dotnet-ef --version 9.0.9 && export PATH=\$PATH:/root/.dotnet/tools && dotnet ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence"
 
                     # Run the app container with SQLite folder mounted
                     sudo docker run -d \
