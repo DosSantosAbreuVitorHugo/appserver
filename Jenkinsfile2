@@ -85,7 +85,7 @@ MIGRATION_EOF
 					  -v /tmp/rise-app-data:/app/Data \
 					  -w /app/Data \
 					  mcr.microsoft.com/dotnet/sdk:9.0 \
-					  dotnet-ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence
+					  dotnet ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence
 
                     # Run the app container
                     sudo docker run -d \\
