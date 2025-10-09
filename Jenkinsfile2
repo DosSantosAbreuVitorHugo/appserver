@@ -74,19 +74,24 @@ EOF
 
                     chmod +x /tmp/run-migrations.sh
 
+					mkdir -p /tmp/rise-app-data
+
 					# Run EF migrations inside container
 					sudo docker run --rm \
 					  -v /tmp/dotnet-2526-vc2/src:/src \
+					  -v /tmp/rise-app-data:/app/Data \
 					  -v /tmp/run-migrations.sh:/run-migrations.sh \
-					  -w /src \
+					  -w /src/Rise.Server \
 					  mcr.microsoft.com/dotnet/sdk:9.0 \
 					  bash /run-migrations.sh
 
+					
                     # Run the app container
 					sudo docker run -d \
 					  -p 8080:8080 \
 					  --name rise-app \
 					  --restart unless-stopped \
+					  -v /tmp/rise-app-data:/app/Data \
 					  rise-app
 
 
