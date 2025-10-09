@@ -89,7 +89,6 @@ pipeline {
 					  --name rise-app \\
 					  --restart unless-stopped \\
 					  -v /tmp/rise-app-data:/app/Data \\
-					  -w /app/Data \\
 					  rise-app
 
                     # Ensure node_exporter is running
