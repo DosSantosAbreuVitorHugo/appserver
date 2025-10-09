@@ -53,8 +53,18 @@ pipeline {
                         sudo docker rm rise-app || true
                         sudo docker run -d -p 8080:8080 --name rise-app --restart unless-stopped rise-app
 
+						# Wait a few seconds for app to initialize
+						sleep 5
+
+						# Run EF Core migrations inside the running container
+						sudo docker exec rise-app dotnet ef database update --startup-project Rise.Server --project Rise.Persistence
+
                         # Run node_exporter if not already
-                        sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest
+						if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
+							sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest
+						else
+							echo \\"node_exporter is already running, skipping...\\"
+						fi
                         "
                     '''
                 }

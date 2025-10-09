@@ -13,6 +13,10 @@ COPY dotnet-2526-vc2/src/ src/
 # Copy all test project files (tests/)
 COPY dotnet-2526-vc2/tests/ tests/
 
+RUN dotnet ef migrations add YourMigrationName --startup-project Rise.Server --project Rise.Persistence
+
+RUN dotnet ef database update --startup-project Rise.Server --project Rise.Persistence
+
 # Restore all projects in the solution
 RUN dotnet restore Rise.sln
 
