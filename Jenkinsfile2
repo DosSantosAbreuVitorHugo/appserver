@@ -64,7 +64,7 @@ cat << EOF > /tmp/run-migrations.sh
 set -e
 
 dotnet tool install --global dotnet-ef --version 9.0.9 || true
-export PATH="\$PATH:/root/.dotnet/tools"
+export PATH=\$PATH:/root/.dotnet/tools
 mkdir -p /app/Data
 cp /src/Rise.Server/appsettings.json /app/Data/
 cd /app/Data
@@ -74,7 +74,6 @@ dotnet-ef database update \
   --project /src/Rise.Persistence \
   -- --ConnectionStrings:DatabaseConnection="Data Source=/app/Data/Rise.db;Cache=Shared"
 EOF
-
 
                     chmod +x /tmp/run-migrations.sh
 
