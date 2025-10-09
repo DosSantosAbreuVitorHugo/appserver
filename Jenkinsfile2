@@ -58,7 +58,7 @@ pipeline {
                     sudo docker rm rise-app || true
 
                     # Create migration script using echo commands
-                    sudo tee /tmp/run-migrations.sh > /dev/null << 'MIGRATION_EOF'
+                    tee /tmp/run-migrations.sh > /dev/null << 'MIGRATION_EOF'
 #!/bin/bash
 set -e
 
@@ -74,7 +74,7 @@ cd /app/Data
 dotnet-ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence -- --ConnectionStrings:DatabaseConnection=\\\"Data Source=/app/Data/Rise.db;Cache=Shared\\\"
 MIGRATION_EOF
 
-                    chmod +x /tmp/run-migrations.sh
+                    sudo chmod +x /tmp/run-migrations.sh
 
                     # Create folder for SQLite DB
                     mkdir -p /tmp/rise-app-data
