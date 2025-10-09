@@ -68,8 +68,15 @@ dotnet tool install --global dotnet-ef --version 9.0.9 || true
 # Ensure PATH includes dotnet tools
 export PATH="$PATH:/root/.dotnet/tools"
 
-# Run migrations
-dotnet-ef database update --startup-project /src/Rise.Server --project /src/Rise.Persistence
+# Ensure database folder exists
+mkdir -p /app/Data
+
+# Run migrations pointing to the mounted folder
+dotnet-ef database update \
+  --startup-project /src/Rise.Server \
+  --project /src/Rise.Persistence \
+  -- --DataSource=/app/Data/Rise.db
+
 EOF
 
                     chmod +x /tmp/run-migrations.sh
