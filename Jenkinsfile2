@@ -89,6 +89,7 @@ pipeline {
 					  --name rise-app \\
 					  --restart unless-stopped \\
 					  -v /tmp/rise-app-data:/app/Data \\
+					  -e ConnectionStrings__DatabaseConnection="DataSource=/app/Data/Rise.db;Cache=Shared" \\
 					  rise-app
 
                     # Ensure node_exporter is running
