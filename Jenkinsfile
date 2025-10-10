@@ -5,60 +5,109 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image from the Dockerfile in this repo
+                    sh "docker build -t rise-app ."
+                }
+            }
+        }
+
+        stage('Transfer Docker Image and Project to Remote Server') {
+            steps {
+                sshagent(['ssh']) {
                     sh '''
-                        docker build -t testapp-image .
+                    # Save Docker image
+                    docker save rise-app -o rise-app.tar
+
+                    # Copy Docker image to remote
+                    scp -o StrictHostKeyChecking=no rise-app.tar vagrant@192.168.56.122:/tmp/
+
+                    # Ensure remote folder exists
+                    ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "mkdir -p /tmp/dotnet-2526-vc2"
+
+                    # Copy full project folder to remote
+                    scp -r -o StrictHostKeyChecking=no dotnet-2526-vc2 vagrant@192.168.56.122:/tmp/
                     '''
                 }
             }
         }
 
-        stage('Transfer Image to Remote Server') {
+        stage('Provision and Deploy on Remote Server') {
             steps {
                 sshagent(['ssh']) {
                     sh '''
-                        # Save Docker image to a tarball
-                        docker save testapp-image -o testapp-image.tar
+                    ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "
+                    set -e
 
-                        # Copy the tarball to remote server
-                        scp -o StrictHostKeyChecking=no testapp-image.tar vagrant@192.168.56.122:/tmp/
-                    '''
-                }
-            }
-        }
+                    # Install Docker if missing
+                    if ! command -v docker &> /dev/null; then
+                        sudo apt-get update -y
+                        sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release
+                        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+                        echo \\\"deb [arch=\\$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \\$(lsb_release -cs) stable\\\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+                        sudo apt-get update -y
+                        sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+                        sudo usermod -aG docker vagrant
+                        sudo systemctl enable docker
+                        sudo systemctl start docker
+                    fi
 
-        stage('Provision and Run on Remote') {
-            steps {
-                sshagent(['ssh']) {
-                    sh '''
-                        ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "
-                        set -e
+                    # Load Docker image
+                    sudo docker load -i /tmp/rise-app.tar
 
-                        # Install Docker if not present
-                        if ! command -v docker &> /dev/null; then
-                          sudo apt-get update -y
-                          sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release
-                          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-                          echo \\"deb [arch=\\\$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \\\$(lsb_release -cs) stable\\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-                          sudo apt-get update -y
-                          sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-                          sudo usermod -aG docker vagrant
-                          sudo systemctl enable docker
-                          sudo systemctl start docker
-                        fi
+                    # Stop old container if exists
+                    sudo docker stop rise-app || true
+                    sudo docker rm rise-app || true
 
-                        # Load image and run container
-                        sudo docker load -i /tmp/testapp-image.tar || true
-                        sudo docker stop testapp || true
-                        sudo docker rm testapp || true
-                        sudo docker run -d --name testapp -p 80:80 \
-                          -e DOTNET_ENVIRONMENT=\\"Development\\" \
-                          -e DOTNET_ConnectionStrings__SqlDatabase=\\"Server=192.168.56.121;Port=3306;Database=mydatabase;User Id=root;Password=supersecretpassword;\\" \
-                          --restart unless-stopped testapp-image
+                    # Create folder for SQLite DB
+                    mkdir -p /tmp/rise-app-data
+                    sudo chmod -R 777 /tmp/rise-app-data
 
-                        # Run node_exporter if not already
+                    # Copy the correct appsettings.json to the data directory FIRST
+                    cp /tmp/dotnet-2526-vc2/src/Rise.Server/appsettings.json /tmp/rise-app-data/ || true
+
+                    # Run EF migrations with explicit connection string
+                    sudo docker run --rm \\
+                      -v /tmp/dotnet-2526-vc2/src:/src \\
+                      -v /tmp/rise-app-data:/app/Data \\
+                      -w /app/Data \\
+                      mcr.microsoft.com/dotnet/sdk:9.0 \\
+                      bash -c \\\"
+                        dotnet tool install --global dotnet-ef --version 9.0.9 || true
+                        export PATH=\\\\\\\$PATH:/root/.dotnet/tools
+                        dotnet ef database update \\
+                          --startup-project /src/Rise.Server \\
+                          --project /src/Rise.Persistence \\
+                          --connection \\\"DataSource=/app/Data/Rise.db;Cache=Shared\\\"
+                      \\\"
+
+                    # Verify the database was created
+                    echo 'Checking if database file was created:'
+                    ls -la /tmp/rise-app-data/ | grep -i rise.db || echo 'No database file found'
+					
+					# Update the client configuration to use the server IP
+					sudo sed -i 's|https://localhost:5001|http://192.168.56.122:5001|g' /tmp/dotnet-2526-vc2/src/Rise.Client/wwwroot/appsettings.json
+
+					# Verify the change
+					echo 'Updated appsettings.json:'
+					cat /tmp/dotnet-2526-vc2/src/Rise.Client/wwwroot/appsettings.json
+
+					# Run the app container on port 5001
+					sudo docker run -d \\
+					  -p 5001:8080 \\
+					  --name rise-app \\
+					  --restart unless-stopped \\
+					  -v /tmp/rise-app-data:/app/Data \\
+					  -e ConnectionStrings__DatabaseConnection=\\\"DataSource=/app/Data/Rise.db;Cache=Shared\\\" \\
+					  rise-app
+					  
+					sudo docker exec rise-app cp /app/Data/Rise.db /app/Rise.db
+
+                    # Ensure node_exporter is running
+                    if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
                         sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest
-                        "
+                    else
+                        echo 'node_exporter is already running, skipping...'
+                    fi
+                    "
                     '''
                 }
             }
