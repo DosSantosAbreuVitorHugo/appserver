@@ -92,13 +92,14 @@ pipeline {
 
 					# Run the app container on port 5001
 					sudo docker run -d \\
-					  -p 5001:8080 \\
+					  -p 5001:5001 \\
 					  --name rise-app \\
 					  --restart unless-stopped \\
                       -v /vagrant/files/buildservertest.pfx:/app/certs/buildservertest.pfx \
 					  -v /tmp/rise-app-data:/app/Data \\
                       -e Kestrel__Certificates__Default__Path=/app/certs/buildservertest.pfx \
                       -e Kestrel__Certificates__Default__Password=admin \
+                      -e ASPNETCORE_URLS=https://+:5001 \
 					  -e ConnectionStrings__DatabaseConnection=\\\"DataSource=/app/Data/Rise.db;Cache=Shared\\\" \\
 					  rise-app
 					  

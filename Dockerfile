@@ -26,10 +26,10 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 # Expose ASP.NET port
-EXPOSE 8080
+EXPOSE 5001
 
 # Environment setup (Production)
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_URLS=https://+:5001
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 ENTRYPOINT ["dotnet", "Rise.Server.dll"]
