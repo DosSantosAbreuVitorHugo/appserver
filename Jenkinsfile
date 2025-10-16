@@ -98,7 +98,7 @@ pipeline {
                       -v /vagrant/files/buildservertest.pfx:/app/certs/buildservertest.pfx \
 					  -v /tmp/rise-app-data:/app/Data \\
                       -e Kestrel__Certificates__Default__Path=/app/certs/buildservertest.pfx \
-                      -e Kestrel__Certificates__Default__Password=YourPassword \
+                      -e Kestrel__Certificates__Default__Password=admin \
 					  -e ConnectionStrings__DatabaseConnection=\\\"DataSource=/app/Data/Rise.db;Cache=Shared\\\" \\
 					  rise-app
 					  
