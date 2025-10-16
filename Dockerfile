@@ -31,5 +31,7 @@ EXPOSE 8080
 # Environment setup (Production)
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV Kestrel__Certificates__Default__Path=/vagrant/files/buildservertest.pfx
+ENV Kestrel__Certificates__Default__Password=admin
 
 ENTRYPOINT ["dotnet", "Rise.Server.dll"]
