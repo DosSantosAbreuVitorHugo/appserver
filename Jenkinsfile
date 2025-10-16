@@ -84,7 +84,7 @@ pipeline {
                     ls -la /tmp/rise-app-data/ | grep -i rise.db || echo 'No database file found'
 					
 					# Update the client configuration to use the server IP
-					sudo sed -i 's|https://localhost:5001|https://192.168.56.122:5001|g' /tmp/dotnet-2526-vc2/src/Rise.Client/wwwroot/appsettings.json
+					#sudo sed -i 's|https://localhost:5001|https://192.168.56.122:5001|g' /tmp/dotnet-2526-vc2/src/Rise.Client/wwwroot/appsettings.json
 
 					# Verify the change
 					echo 'Updated appsettings.json:'
