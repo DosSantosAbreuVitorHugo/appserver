@@ -25,13 +25,16 @@ WORKDIR /app
 # Copy published output from build
 COPY --from=build /app/publish .
 
+# Copy certificate
+COPY /vagrant/files/buildservertest.pfx /app/certs/buildservertest.pfx
+
 # Expose ASP.NET port
 EXPOSE 8080
 
 # Environment setup (Production)
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
-ENV Kestrel__Certificates__Default__Path=/vagrant/files/buildservertest.pfx
+ENV Kestrel__Certificates__Default__Path=/app/certs/buildservertest.pfx
 ENV Kestrel__Certificates__Default__Password=admin
 
 ENTRYPOINT ["dotnet", "Rise.Server.dll"]
