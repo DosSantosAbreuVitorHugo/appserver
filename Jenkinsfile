@@ -68,7 +68,7 @@ pipeline {
                             echo "Database server is ready."
                             break
                         fi
-                        echo "Waiting for database... ($i/12)"
+                        echo "Waiting for database... \($i/12\)"
                         sleep 5
                         i=$(expr $i + 1)
                     done
