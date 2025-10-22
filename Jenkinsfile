@@ -59,41 +59,11 @@ pipeline {
 
                     # Install netcat for connectivity test
                     sudo apt-get update -y && sudo apt-get install -y netcat
-
-                    # Wait for DB to be ready
-                    echo "Waiting for database server to be ready..."
-                    i=1
-                    while [ $i -le 12 ]; do
-                        if nc -z 192.168.56.121 3306; then
-                            echo "Database server is ready."
-                            break
-                        fi
-                        echo "Waiting for database... \($i/12\)"
-                        sleep 5
-                        i=$(expr $i + 1)
-                    done
                     
                     if ! nc -z 192.168.56.121 3306; then
                         echo "Database server is not reachable after 60 seconds."
                         exit 1
                     fi
-
-                    # Run EF migrations with explicit connection string for MySQL
-                    sudo docker run --rm --network host \\
-                      -v /tmp/dotnet-2526-vc2/src:/src \\
-                      mcr.microsoft.com/dotnet/sdk:9.0 \\
-                      bash -c \\\"
-                        dotnet tool install --global dotnet-ef --version 9.0.9 || true
-                        export PATH=\\\\\\\$PATH:/root/.dotnet/tools
-                        dotnet ef database update \\
-                          --startup-project /src/Rise.Server \\
-                          --project /src/Rise.Persistence \\
-                          --connection \\\"Server=192.168.56.121;Port=3306;Database=mydatabase;User Id=root;Password=supersecretpassword;\\\"
-                      \\\"
-
-                    # Verify the change in client appsettings
-                    echo 'Updated appsettings.json:'
-                    cat /tmp/dotnet-2526-vc2/src/Rise.Client/wwwroot/appsettings.json
 
 					# Run the app container on port 5001 with MySQL connection
 					sudo docker run -d \\
@@ -105,7 +75,6 @@ pipeline {
                       -e Kestrel__Certificates__Default__Path=/app/certs/buildservertest.pfx \\
                       -e Kestrel__Certificates__Default__Password=admin \\
                       -e ASPNETCORE_URLS=https://+:5001 \\
-					  -e ConnectionStrings__DatabaseConnection=\\\"Server=192.168.56.121;Port=3306;Database=mydatabase;User Id=root;Password=supersecretpassword;\\\" \\
 					  rise-app
 
                     # Ensure node_exporter is running
