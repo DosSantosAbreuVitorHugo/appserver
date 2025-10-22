@@ -1,0 +1,30 @@
+---
+name: CI/CD Router
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Route to production team's workflow for main branch
+  call-main-build:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/main-build.yml
+    with:
+      commit_sha: ${{ github.sha }}
+      commit_message: ${{ github.event.head_commit.message }}
+      branch: ${{ github.ref_name }}
+    secrets: inherit
+
+  # Route to branch team's workflow for pull requests
+  call-branch-build:
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/branch-build.yml
+    with:
+      commit_sha: ${{ github.sha }}
+      commit_message: ${{ github.event.head_commit.message }}
+      branch: ${{ github.head_ref }}
+    secrets: inherit

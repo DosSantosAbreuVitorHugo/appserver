@@ -1,0 +1,29 @@
+---
+name: Main Build (Production)
+on:
+  workflow_call:
+    inputs:
+      commit_sha:
+        required: true
+        type: string
+      commit_message:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder for Main Build
+        run: |
+          echo "🚧 MAIN BUILD - UNDER CONSTRUCTION 🚧"
+          echo "========================================"
+          echo "Branch: ${{ inputs.branch }}"
+          echo "Commit: ${{ inputs.commit_sha }}"
+          echo "Message: ${{ inputs.commit_message }}"
+          echo ""
+          echo "This is a placeholder workflow."
+          echo "TODO: Implement actual production build steps"

@@ -1,0 +1,29 @@
+---
+name: Branch Build (Development)
+on:
+  workflow_call:
+    inputs:
+      commit_sha:
+        required: true
+        type: string
+      commit_message:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder for Branch Build
+        run: |
+          echo "🚧 WIP - Branch Build Coming Soon! 🚧"
+          echo "======================================"
+          echo "Branch: ${{ inputs.branch }}"
+          echo "Commit: ${{ inputs.commit_sha }}"
+          echo "Message: ${{ inputs.commit_message }}"
+          echo ""
+          echo "This workflow is a placeholder."
+          echo "TODO: add workflow"
