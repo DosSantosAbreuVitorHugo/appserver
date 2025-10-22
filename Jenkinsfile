@@ -70,7 +70,7 @@ pipeline {
                         fi
                         echo "Waiting for database... ($i/12)"
                         sleep 5
-                        i=$(($i + 1))
+                        i=$(expr $i + 1)
                     done
                     
                     if ! nc -z 192.168.56.121 3306; then
