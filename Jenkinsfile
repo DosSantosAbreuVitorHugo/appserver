@@ -62,13 +62,15 @@ pipeline {
 
                     # Wait for DB to be ready
                     echo "Waiting for database server to be ready..."
-                    for i in {1..12}; do
+                    i=1
+                    while [ $i -le 12 ]; do
                         if nc -z 192.168.56.121 3306; then
                             echo "Database server is ready."
                             break
                         fi
                         echo "Waiting for database... ($i/12)"
                         sleep 5
+                        i=$(($i + 1))
                     done
                     
                     if ! nc -z 192.168.56.121 3306; then
