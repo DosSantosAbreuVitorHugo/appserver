@@ -58,7 +58,7 @@ pipeline {
                     sudo docker rm rise-app || true
 
                     # Run EF migrations with explicit connection string for MySQL
-                    sudo docker run --rm \\
+                    sudo docker run --rm --network host \\
                       -v /tmp/dotnet-2526-vc2/src:/src \\
                       mcr.microsoft.com/dotnet/sdk:9.0 \\
                       bash -c \\\"
@@ -76,6 +76,7 @@ pipeline {
 
 					# Run the app container on port 5001 with MySQL connection
 					sudo docker run -d \\
+					  --network host \\
 					  -p 5001:5001 \\
 					  --name rise-app \\
 					  --restart unless-stopped \\
