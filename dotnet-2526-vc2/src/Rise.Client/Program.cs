@@ -38,7 +38,7 @@ try
 
     builder.Services.AddHttpClient<IProductService, ProductService>(client =>
     {
-        client.BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "https://localhost:5001");
+        client.BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "https://192.168.56.122:5001");
     });
 
     await builder.Build().RunAsync();
