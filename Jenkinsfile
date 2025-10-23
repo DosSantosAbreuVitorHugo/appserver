@@ -77,6 +77,8 @@ pipeline {
                       -e ASPNETCORE_URLS=https://+:5001 \\
 					  rise-app
 
+                    sudo docker exec sed -i 's/localhost/192.168.56.122/g' /app/wwwroot/appsettings.json
+
                     # Ensure node_exporter is running
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
                         sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest
