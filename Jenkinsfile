@@ -6,17 +6,19 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    echo "Generating EF Core migration script..."
-                    dotnet tool restore || true
-                    dotnet restore dotnet-2526-vc2/Rise.sln
-                    dotnet ef migrations script \
-                        -s dotnet-2526-vc2/src/Rise.Server/Rise.Server.csproj \
-                        -p dotnet-2526-vc2/src/Rise.Persistence/Rise.Persistence.csproj \
-                        -o dotnet-2526-vc2/database.sql
+                        echo "Generating EF Core migration script..."
+                        dotnet tool restore || true
+                        dotnet restore dotnet-2526-vc2/Rise.sln
+                        dotnet ef migrations script \\
+                            -s dotnet-2526-vc2/src/Rise.Server/Rise.Server.csproj \\
+                            -p dotnet-2526-vc2/src/Rise.Persistence/Rise.Persistence.csproj \\
+                            -o dotnet-2526-vc2/database.sql
                     '''
                 }
             }
         }
+    }
+
 
     stages {
         stage('Build Docker Image') {
