@@ -25,6 +25,11 @@ WORKDIR /app
 # Copy published output from build
 COPY --from=build /app/publish .
 
+# ** HARDENING CHANGE START **
+# Critical Fix: Switch to the built-in non-root user 'appuser'
+USER appuser
+# ** HARDENING CHANGE END **
+
 # Expose ASP.NET port
 EXPOSE 5001
 

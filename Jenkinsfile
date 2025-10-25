@@ -37,6 +37,25 @@ pipeline {
                     ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "
                     set -e
 
+                    # ** HARDENING PHASE 1: Host & Permissions **
+
+                    # Critical Fix 3.1: RESTRICT SSL KEY PERMISSIONS 
+                    # Set to 600 (Read/Write for owner only, which is 'vagrant' initially)
+                    sudo chmod 600 /vagrant/files/buildservertest.pfx
+
+                    # Critical Fix 1.1 & High Fix 1.2: ENABLE AND CONFIGURE FIREWALL
+                    # 1. Reset and set default policy
+                    sudo ufw --force reset
+                    sudo ufw default deny incoming
+                    sudo ufw default allow outgoing
+                    # 2. Allow required traffic
+                    sudo ufw allow 22/tcp          comment 'Allow SSH for access'
+                    sudo ufw allow 5001/tcp        comment 'Allow HTTPS for rise-app'
+                    # 3. Restrict Prometheus/node_exporter (assuming monitoring runs from 192.168.56.121)
+                    sudo ufw allow from 192.168.56.121 to any port 9100 proto tcp comment 'Restrict node_exporter to Prometheus IP'
+                    # 4. Enable the firewall
+                    sudo ufw --force enable
+
                     # Install Docker if missing
                     if ! command -v docker &> /dev/null; then
                         sudo apt-get update -y
@@ -65,23 +84,27 @@ pipeline {
                         exit 1
                     fi
 
-					# Run the app container on port 5001 with MySQL connection
-					sudo docker run -d \\
-					  --network host \\
-					  -p 5001:5001 \\
-					  --name rise-app \\
-					  --restart unless-stopped \\
+                    # ** HARDENING PHASE 2: Container Configuration **
+                    
+                    # Critical Fix 2.1: REMOVE INSECURE --network host FLAG
+                    # Removed '--network host' and rely on '-p 5001:5001' and host firewall
+                    sudo docker run -d \\
+                      -p 5001:5001 \\
+                      --name rise-app \\
+                      --restart unless-stopped \\
                       -v /vagrant/files/buildservertest.pfx:/app/certs/buildservertest.pfx \\
                       -e Kestrel__Certificates__Default__Path=/app/certs/buildservertest.pfx \\
                       -e Kestrel__Certificates__Default__Password=admin \\
                       -e ASPNETCORE_URLS=https://+:5001 \\
-					  rise-app
+                      rise-app
 
                     sudo docker exec rise-app sed -i 's/localhost/192.168.56.122/g' /app/wwwroot/appsettings.json
 
                     # Ensure node_exporter is running
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
-                        sudo docker run -d --name node_exporter --network host --restart unless-stopped prom/node-exporter:latest
+                        # High Fix 1.2: REMOVE INSECURE --network host FLAG from node_exporter
+                        # Use host-level port mapping instead of sharing the entire network stack
+                        sudo docker run -d --name node_exporter -p 9100:9100 --restart unless-stopped prom/node-exporter:latest
                     else
                         echo 'node_exporter is already running, skipping...'
                     fi
