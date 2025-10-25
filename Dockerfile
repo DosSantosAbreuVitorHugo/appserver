@@ -25,10 +25,18 @@ WORKDIR /app
 # Copy published output from build
 COPY --from=build /app/publish .
 
-# ** HARDENING CHANGE START **
-# Critical Fix: Switch to the built-in non-root user 'appuser'
+# ** CORRECTED HARDENING CHANGE START **
+
+# Explicitly create the appuser (since the system couldn't find it)
+RUN adduser -u 1000 --system --ingroup users appuser
+
+# Set ownership of the app directory to the new user. 
+# This is CRITICAL for non-root users to access the app.
+RUN chown -R appuser:users /app
+
+# Critical Fix: Switch to the unprivileged user 'appuser'
 USER appuser
-# ** HARDENING CHANGE END **
+# ** CORRECTED HARDENING CHANGE END **
 
 # Expose ASP.NET port
 EXPOSE 5001
