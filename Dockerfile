@@ -1,7 +1,8 @@
 # ========================================
 # BUILD STAGE
 # ========================================
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+# UPDATED: Switched to 'bookworm-slim' SDK for smaller size and fewer OS vulnerabilities
+FROM mcr.microsoft.com/dotnet/sdk:9.0-bookworm-slim AS build
 WORKDIR /src
 
 # Copy solution and project files
@@ -19,24 +20,24 @@ RUN dotnet publish src/Rise.Server/Rise.Server.csproj -c Release -o /app/publish
 # ========================================
 # RUNTIME STAGE
 # ========================================
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+# UPDATED: Switched to 'bookworm-slim' ASPNET runtime to match the SDK and reduce vulnerability surface
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-bookworm-slim AS runtime
 WORKDIR /app
 
 # Copy published output from build
 COPY --from=build /app/publish .
 
-# ** CORRECTED HARDENING CHANGE START **
+# ** HARDENING CHANGE (NON-ROOT USER) **
 
-# Explicitly create the appuser (since the system couldn't find it)
+# Explicitly create the appuser 
 RUN adduser -u 1000 --system --ingroup users appuser
 
 # Set ownership of the app directory to the new user. 
-# This is CRITICAL for non-root users to access the app.
 RUN chown -R appuser:users /app
 
 # Critical Fix: Switch to the unprivileged user 'appuser'
 USER appuser
-# ** CORRECTED HARDENING CHANGE END **
+# ** HARDENING CHANGE END **
 
 # Expose ASP.NET port
 EXPOSE 5001
