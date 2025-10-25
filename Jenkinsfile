@@ -5,11 +5,10 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t rise-app ."
+                    // Critical Fix: Force pull of the base image to fix CRITICAL OS vulnerability (zlib1g)
+                    sh "docker build --no-cache -t rise-app ."
                     
-                    // HARDENING FIX 1: INTEGRATE TRIVY IMAGE SCANNER
-                    // Scans the image for Critical and High vulnerabilities. Fails the build if found.
-                    // The volume mount allows Trivy (running in its own container) to access the Docker daemon.
+                    // Security Gate: Scan the image for Critical and High vulnerabilities. Fails the pipeline if found.
                     sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 1 --severity CRITICAL,HIGH rise-app"
                 }
             }
@@ -19,15 +18,13 @@ pipeline {
             steps {
                 sshagent(['ssh']) {
                     sh '''
-                    # Save Docker image
+                    # Save Docker image and transfer to remote host
                     docker save rise-app -o rise-app.tar
-
-                    # Copy Docker image to remote
                     scp -o StrictHostKeyChecking=no rise-app.tar vagrant@192.168.56.122:/tmp/
 
-                    # Ensure remote folder exists
+                    # Prepare remote folders
                     ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "mkdir -p /tmp/dotnet-2526-vc2"
-
+                    
                     # Copy full project folder to remote
                     scp -r -o StrictHostKeyChecking=no dotnet-2526-vc2 vagrant@192.168.56.122:/tmp/
                     '''
@@ -42,8 +39,7 @@ pipeline {
                     ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "
                     set -e
 
-                    # HARDENING FIX 2: AUTOMATE DOCKER LOG ROTATION (Apply only if needed)
-                    # This check prevents unnecessary file writes and service restarts.
+                    # HARDENING FIX: Docker Log Rotation (Automate on first run only)
                     if ! sudo grep -q 'max-size' /etc/docker/daemon.json; then
                         echo 'Applying Docker Log Rotation Configuration...'
                         echo '{\\"log-driver\\": \\"json-file\\", \\"log-opts\\": {\\"max-size\\": \\"10m\\", \\"max-file\\": \\"3\\"}}' | sudo tee /etc/docker/daemon.json
@@ -51,20 +47,16 @@ pipeline {
                     else
                         echo 'Docker Log Rotation Configuration already applied.'
                     fi
-
-                    # ** HARDENING PHASE 1: Host & Permissions **
                     
-                    # FIX CRITICAL 3.1: Copy key to a non-shared location for secure permissions
+                    # Hardening Fix: Secure copy and restrict PFX key access
                     sudo mkdir -p /tmp/certs
                     sudo cp /vagrant/files/buildservertest.pfx /tmp/certs/
-                    
-                    # Set restricted permissions (600: read/write for owner only) on the local copy
                     sudo chmod 600 /tmp/certs/buildservertest.pfx
-
-                    # Cleanup: REMOVE THE INSECURE FILE from the shared directory
+                    
+                    # Cleanup: Remove the insecure key from the shared directory
                     sudo rm -f /vagrant/files/buildservertest.pfx
 
-                    # Critical Fix 1.1 & High Fix 1.2: FIREWALL 
+                    # Hardening Fix: Configure Firewall (ufw)
                     sudo ufw --force reset
                     sudo ufw default deny incoming
                     sudo ufw default allow outgoing
@@ -89,7 +81,7 @@ pipeline {
                     # Load Docker image
                     sudo docker load -i /tmp/rise-app.tar
 
-                    # Stop old container if exists
+                    # Stop and remove old container
                     sudo docker stop rise-app || true
                     sudo docker rm rise-app || true
 
@@ -101,9 +93,7 @@ pipeline {
                         exit 1
                     fi
 
-                    # ** HARDENING PHASE 2: Container Configuration **
-                    
-                    # Critical Fix 2.1: REMOVE INSECURE --network host FLAG
+                    # Deploy Container (Hardened Configuration)
                     sudo docker run -d \\
                       -p 5001:5001 \\
                       --name rise-app \\
@@ -114,9 +104,10 @@ pipeline {
                       -e ASPNETCORE_URLS=https://+:5001 \\
                       rise-app
 
+                    # Update appsettings.json for DB connectivity
                     sudo docker exec rise-app sed -i 's/localhost/192.168.56.122/g' /app/wwwroot/appsettings.json
 
-                    # Ensure node_exporter is running
+                    # Ensure node_exporter is running for Prometheus
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
                         sudo docker run -d --name node_exporter -p 9100:9100 --restart unless-stopped prom/node-exporter:latest
                     else
