@@ -54,7 +54,7 @@ pipeline {
                     # FIX: Use '|| true' to safely handle the old, insecure path /vagrant/files/ being empty or missing.
                     sudo cp /vagrant/files/buildservertest.pfx /tmp/certs/ || true
 
-                    // CRITICAL FIX: Changed permissions from 600 to 644 to allow the container's non-root 'appuser' to read the mounted file, fixing the restart loop.
+                    # CRITICAL FIX: Changed permissions from 600 to 644 to allow the container's non-root 'appuser' to read the mounted file, fixing the restart loop.
                     sudo chmod 644 /tmp/certs/buildservertest.pfx
                     
                     # FIX: Safely remove the insecure key from the shared directory. Use '|| true' to prevent script failure.
