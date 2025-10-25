@@ -38,16 +38,16 @@ pipeline {
                     set -e
 
                     # ** HARDENING PHASE 1: Host & Permissions **
-
-                    # Create a secure directory for the certificate in /tmp (non-shared)
-                    sudo mkdir -p /tmp/certs
                     
-                    # Copy the key to the secure, non-shared location
+                    # FIX CRITICAL 3.1: Copy key to a non-shared location for secure permissions
+                    sudo mkdir -p /tmp/certs
                     sudo cp /vagrant/files/buildservertest.pfx /tmp/certs/
                     
-                    # Critical Fix 3.1: RESTRICT SSL KEY PERMISSIONS 
-                    # Set to 600 (Read/Write for owner only, which is 'root' after sudo cp)
+                    # Set restricted permissions (600: read/write for owner only) on the local copy
                     sudo chmod 600 /tmp/certs/buildservertest.pfx
+
+                    # NEW STEP: REMOVE THE INSECURE FILE from the shared directory
+                    sudo rm -f /vagrant/files/buildservertest.pfx
 
                     # Critical Fix 1.1 & High Fix 1.2: FIREWALL (KEEP THIS BLOCK)
                     # ... (rest of the firewall and docker install code remains the same) ...
