@@ -1,9 +1,12 @@
 # ========================================
 # BUILD STAGE
 # ========================================
-# UPDATED: Switched to 'bookworm-slim' SDK for smaller size and fewer OS vulnerabilities
-FROM mcr.microsoft.com/dotnet/sdk:9.0-bookworm-slim AS build
+# FIX: Switch to the Alpine SDK variant for a smaller attack surface and to fix zlib1g vulnerability
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 WORKDIR /src
+
+# Alpine Fix: Install glibc compatibility layer (libc6-compat) and git for .NET operations
+RUN apk add --no-cache git libc6-compat
 
 # Copy solution and project files
 COPY dotnet-2526-vc2/Rise.sln ./
@@ -20,20 +23,20 @@ RUN dotnet publish src/Rise.Server/Rise.Server.csproj -c Release -o /app/publish
 # ========================================
 # RUNTIME STAGE
 # ========================================
-# UPDATED: Switched to 'bookworm-slim' ASPNET runtime to match the SDK and reduce vulnerability surface
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-bookworm-slim AS runtime
+# FIX: Switch to the Alpine ASPNET runtime to match the SDK and maintain a minimal, secure base
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
 WORKDIR /app
 
 # Copy published output from build
 COPY --from=build /app/publish .
 
-# ** HARDENING CHANGE (NON-ROOT USER) **
+# ** HARDENING CHANGE: NON-ROOT USER **
 
-# Explicitly create the appuser 
-RUN adduser -u 1000 --system --ingroup users appuser
+# Alpine Fix: Create system user 'appuser'. The '-D' flag is equivalent to '--system'.
+RUN adduser -D -u 1000 appuser
 
-# Set ownership of the app directory to the new user. 
-RUN chown -R appuser:users /app
+# Set ownership of the app directory to the new user.
+RUN chown -R appuser:appuser /app
 
 # Critical Fix: Switch to the unprivileged user 'appuser'
 USER appuser
