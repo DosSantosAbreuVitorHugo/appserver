@@ -66,7 +66,7 @@ pipeline {
                     sudo ufw default allow outgoing
                     sudo ufw allow 22/tcp comment 'Allow SSH for access'
                     sudo ufw allow 5001/tcp comment 'Allow HTTPS for rise-app'
-                    sudo ufw allow from 192.168.56.121 to any port 9100 proto tcp comment 'Restrict node_exporter to Prometheus IP'
+                    sudo ufw allow from 192.168.56.123 to any port 9100 proto tcp comment 'Restrict node_exporter to Prometheus IP'
                     sudo ufw --force enable
 
                     # Install Docker if missing
