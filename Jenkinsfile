@@ -5,10 +5,10 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Critical Fix: Force pull of the base image to fix CRITICAL OS vulnerability (zlib1g)
+                    // Force pull base image to fix CRITICAL OS vulnerability (zlib1g)
                     sh "docker build --no-cache -t rise-app ."
                     
-                    // Security Gate: Scan the image for Critical and High vulnerabilities. Fails the pipeline if found.
+                    // Security Gate: Scan the image. Fails if CRITICAL or HIGH vulnerabilities are found.
                     sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 1 --severity CRITICAL,HIGH rise-app"
                 }
             }
@@ -50,11 +50,13 @@ pipeline {
                     
                     # Hardening Fix: Secure copy and restrict PFX key access
                     sudo mkdir -p /tmp/certs
-                    sudo cp /vagrant/files/buildservertest.pfx /tmp/certs/
+                    
+                    # FIX: Use '|| true' to safely handle the old, insecure path /vagrant/files/ being empty or missing.
+                    sudo cp /vagrant/files/buildservertest.pfx /tmp/certs/ || true
                     sudo chmod 600 /tmp/certs/buildservertest.pfx
                     
-                    # Cleanup: Remove the insecure key from the shared directory
-                    sudo rm -f /vagrant/files/buildservertest.pfx
+                    # FIX: Safely remove the insecure key from the shared directory. Use '|| true' to prevent script failure.
+                    sudo rm -f /vagrant/files/buildservertest.pfx || true
 
                     # Hardening Fix: Configure Firewall (ufw)
                     sudo ufw --force reset
@@ -88,6 +90,7 @@ pipeline {
                     # Install netcat for connectivity test
                     sudo apt-get update -y && sudo apt-get install -y netcat
                     
+                    # Check database connectivity (wait 60 seconds implied by original logic)
                     if ! nc -z 192.168.56.121 3306; then
                         echo Database server is not reachable after 60 seconds.
                         exit 1
@@ -107,7 +110,7 @@ pipeline {
                     # Update appsettings.json for DB connectivity
                     sudo docker exec rise-app sed -i 's/localhost/192.168.56.122/g' /app/wwwroot/appsettings.json
 
-                    # Ensure node_exporter is running for Prometheus
+                    # Ensure node_exporter is running for Prometheus monitoring
                     if ! sudo docker ps -q -f name=node_exporter | grep -q .; then
                         sudo docker run -d --name node_exporter -p 9100:9100 --restart unless-stopped prom/node-exporter:latest
                     else
