@@ -8,6 +8,11 @@ WORKDIR /src
 # Alpine Fix: Install glibc compatibility layer (libc6-compat) and git for .NET operations
 RUN apk add --no-cache git libc6-compat
 
+# Copy solution and project files
+COPY Rise.sln ./
+COPY src/ src/
+COPY tests/ tests/
+
 # Restore dependencies
 RUN dotnet restore Rise.sln
 
