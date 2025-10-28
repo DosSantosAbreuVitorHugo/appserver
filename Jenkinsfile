@@ -1,7 +1,44 @@
 pipeline {
     agent any
 
+    environment {
+        APP_REPO_URL = 'git@github.com:HOGENT-RISE/dotnet-2526-vc2.git'
+        DOCKERFILE_REPO_URL = 'git@github.com:DosSantosAbreuVitorHugo/appserver.git'
+    }
+
     stages {
+        stage('Clean Workspace') {
+            steps {
+                deleteDir()
+            }
+        }
+
+        stage('Clone Application Repository') {
+            steps {
+                sshagent(['git']) {
+                    sh '''
+                        GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git clone ${APP_REPO_URL} .
+                    '''
+                }
+            }
+        }
+
+        stage('Clone Dockerfile Repository') {
+            steps {
+                sshagent(['git']) {
+                    sh '''
+                        GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git clone ${DOCKERFILE_REPO_URL} dockerfile-repo
+                    '''
+                }
+            }
+        }
+
+        stage('Copy Dockerfile') {
+            steps {
+                sh 'cp dockerfile-repo/Dockerfile .'
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
@@ -18,6 +55,9 @@ pipeline {
             steps {
                 sshagent(['ssh']) {
                     sh '''
+                    # Add remote server to known hosts
+                    ssh-keyscan -H 192.168.56.122 >> ~/.ssh/known_hosts
+                    
                     # Save Docker image and transfer to remote host
                     docker save rise-app -o rise-app.tar
                     scp -o StrictHostKeyChecking=no rise-app.tar vagrant@192.168.56.122:/tmp/
