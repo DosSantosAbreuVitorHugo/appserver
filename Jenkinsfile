@@ -39,6 +39,24 @@ pipeline {
             }
         }
 
+        stage('Update Configuration') {
+            steps {
+                sh '''
+                    # Install jq first
+                    apt-get update && apt-get install -y jq
+                    
+                    # CORRECT: Add ConnectionStrings while preserving existing content
+                    jq '. + {ConnectionStrings: {DatabaseConnection: "Server=192.168.56.121;Port=3306;Database=mydatabase;User Id=root;Password=supersecretpassword;"}}' \
+                    src/Rise.Server/appsettings.json > src/Rise.Server/appsettings.tmp.json \
+                    && mv src/Rise.Server/appsettings.tmp.json src/Rise.Server/appsettings.json
+                    
+                    # Verify the change was applied
+                    echo "Updated appsettings.json:"
+                    cat src/Rise.Server/appsettings.json
+                '''
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
@@ -64,9 +82,9 @@ pipeline {
 
                     # Prepare remote folders
                     ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "mkdir -p /tmp/dotnet-2526-vc2"
-                    
+
                     # Copy full project folder to remote
-                    scp -r -o StrictHostKeyChecking=no dotnet-2526-vc2 vagrant@192.168.56.122:/tmp/
+                    scp -r -o StrictHostKeyChecking=no ./src ./tests ./Rise.sln ./Dockerfile ./README.md vagrant@192.168.56.122:/tmp/dotnet-2526-vc2
                     '''
                 }
             }
@@ -79,6 +97,22 @@ pipeline {
                     ssh -o StrictHostKeyChecking=no vagrant@192.168.56.122 "
                     set -e
 
+                    # Install Docker if missing
+                    if ! command -v docker &> /dev/null; then
+                        sudo apt-get update -y
+                        sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release
+                        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+                        # Remove any old Docker repo list
+                        sudo rm -f /etc/apt/sources.list.d/docker.list
+                        echo \"deb [arch=\$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+                        sudo apt-get update -y
+                        sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+                        sudo usermod -aG docker vagrant
+                        sudo systemctl enable docker
+                        sudo systemctl start docker
+                    fi
+
                     # HARDENING FIX: Docker Log Rotation (Automate on first run only)
                     if ! sudo grep -q 'max-size' /etc/docker/daemon.json; then
                         echo 'Applying Docker Log Rotation Configuration...'
@@ -87,7 +121,7 @@ pipeline {
                     else
                         echo 'Docker Log Rotation Configuration already applied.'
                     fi
-                    
+
                     # Hardening Fix: Secure copy and restrict PFX key access
                     sudo mkdir -p /tmp/certs
                     
@@ -108,19 +142,6 @@ pipeline {
                     sudo ufw allow 5001/tcp comment 'Allow HTTPS for rise-app'
                     sudo ufw allow from 192.168.56.123 to any port 9100 proto tcp comment 'Restrict node_exporter to Prometheus IP'
                     sudo ufw --force enable
-
-                    # Install Docker if missing
-                    if ! command -v docker &> /dev/null; then
-                        sudo apt-get update -y
-                        sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release
-                        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-                        echo \"deb [arch=\$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \$(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-                        sudo apt-get update -y
-                        sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-                        sudo usermod -aG docker vagrant
-                        sudo systemctl enable docker
-                        sudo systemctl start docker
-                    fi
 
                     # Load Docker image
                     sudo docker load -i /tmp/rise-app.tar
